@@ -1,4 +1,4 @@
-# Teddy Menafesha Ordering System
+# Ambo Menafesha Ordering System
 
 A complete Next.js + Prisma + PostgreSQL app for gojo/home based food and drink orders.
 
@@ -36,12 +36,12 @@ Open:
 Create database:
 
 ```bash
-createdb teddy_menafesha
+createdb Ambo_menafesha
 ```
 
 Then use this in `.env`:
 
 ```env
-DATABASE_URL="postgresql://postgres:YOUR_PASSWORD@localhost:5432/teddy_menafesha?schema=public"
+DATABASE_URL="postgresql://postgres:YOUR_PASSWORD@localhost:5432/Ambo_menafesha?schema=public"
 ```
-"# teddy" 
+"# Ambo" 

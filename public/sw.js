@@ -1,4 +1,4 @@
-const CACHE_NAME = "teddy-menafesha-v1";
+const CACHE_NAME = "Ambo-menafesha-v1";
 
 const STATIC_ASSETS = [
   "/",

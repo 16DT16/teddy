@@ -100,3 +100,12 @@ model Order {
   @@index([status])
   @@index([createdAt])
 }
+
+
+model StaffAccount {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+}

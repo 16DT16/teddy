@@ -1,5 +1,5 @@
 {
-  "name": "teddy-menafesha",
+  "name": "ambo-menafesha",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
-    "bcryptjs": "latest",
+    "bcryptjs": "^3.0.3",
     "clsx": "latest",
     "date-fns": "latest",
     "lucide-react": "latest",
@@ -24,6 +24,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "latest",
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",

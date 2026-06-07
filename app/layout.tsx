@@ -3,12 +3,12 @@ import "./globals.css";
 import { RegisterServiceWorker } from "@/components/RegisterServiceWorker";
 
 export const metadata: Metadata = {
-  title: "Teddy Menafesha Ordering",
+  title: "Ambo Menafesha Ordering",
   description: "Order food and drinks directly from your gojo.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "Teddy Order",
+    title: "Ambo Order",
     statusBarStyle: "black-translucent",
   },
   icons: {
