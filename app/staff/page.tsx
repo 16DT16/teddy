@@ -2,19 +2,25 @@
 
 
 
+
+
 // "use client";
 
 // import { useEffect, useMemo, useRef, useState } from "react";
 // import { TopNav } from "@/components/TopNav";
+// import { QRCodeSVG } from "qrcode.react";
 // import {
 //   AlertCircle,
 //   BellRing,
 //   CheckCircle2,
 //   CircleDollarSign,
+//   Copy,
 //   Clock3,
 //   Coffee,
 //   Home,
+//   KeyRound,
 //   Loader2,
+//   QrCode,
 //   ReceiptText,
 //   RotateCw,
 //   Save,
@@ -49,6 +55,19 @@
 // type Notice = {
 //   type: "success" | "error" | "info";
 //   text: string;
+// };
+
+// type GojoAccessCode = {
+//   id: string;
+//   number: number | string;
+//   name?: string | null;
+//   code: string;
+// };
+
+// type GojoAccessCodesResponse = {
+//   businessDate?: string;
+//   codes?: GojoAccessCode[];
+//   error?: string;
 // };
 
 // const STATUS_FLOW = ["RECEIVED", "PREPARING", "DELIVERED", "CANCELLED"];
@@ -150,11 +169,109 @@
 //   const [updatingOrderId, setUpdatingOrderId] = useState("");
 //   const [notice, setNotice] = useState<Notice | null>(null);
 
+//   const [gojoAccessCodes, setGojoAccessCodes] = useState<GojoAccessCode[]>([]);
+//   const [selectedAccessGojoId, setSelectedAccessGojoId] = useState("");
+//   const [gojoCodesBusinessDate, setGojoCodesBusinessDate] = useState("");
+//   const [loadingGojoCodes, setLoadingGojoCodes] = useState(false);
+//   const [copiedAccessValue, setCopiedAccessValue] = useState<
+//     "code" | "link" | ""
+//   >("");
+//   const [accessBaseUrl, setAccessBaseUrl] = useState("");
+
 //   const lastOrderId = useRef<string | null>(null);
 //   const loadingRef = useRef(false);
 //   const mountedRef = useRef(false);
 //   const requestControllerRef = useRef<AbortController | null>(null);
 //   const gojoInputsDirtyRef = useRef(false);
+
+//   async function loadGojoAccessCodes(showNotice = false) {
+//     if (loadingGojoCodes) return;
+
+//     try {
+//       setLoadingGojoCodes(true);
+
+//       const response = await fetch("/api/staff/gojo-access-codes", {
+//         cache: "no-store",
+//         headers: {
+//           Accept: "application/json",
+//         },
+//       });
+
+//       const responseText = await response.text();
+
+//       let data: GojoAccessCodesResponse = {};
+
+//       if (responseText.trim()) {
+//         try {
+//           data = JSON.parse(responseText);
+//         } catch {
+//           throw new Error("የጎጆ የይለፍ ቃል መረጃው ትክክለኛ JSON አይደለም።");
+//         }
+//       }
+
+//       if (!response.ok) {
+//         throw new Error(
+//           data.error ||
+//             responseText ||
+//             `የጎጆ የይለፍ ቃሎቹን መጫን አልተቻለም (${response.status})።`,
+//         );
+//       }
+
+//       const codes = Array.isArray(data.codes) ? data.codes : [];
+
+//       setGojoAccessCodes(codes);
+//       setGojoCodesBusinessDate(data.businessDate || "");
+
+//       setSelectedAccessGojoId((current) => {
+//         if (current && codes.some((item) => item.id === current)) {
+//           return current;
+//         }
+
+//         return codes[0]?.id || "";
+//       });
+
+//       if (showNotice) {
+//         setNotice({
+//           type: "success",
+//           text: "የቀኑ የጎጆ የይለፍ ቃል ታድሷል።",
+//         });
+//       }
+//     } catch (error: any) {
+//       console.error("Failed to load Gojo access codes:", error);
+
+//       setNotice({
+//         type: "error",
+//         text:
+//           error?.message ||
+//           "የጎጆ የይለፍ ቃሎቹን መጫን አልተቻለም።",
+//       });
+//     } finally {
+//       setLoadingGojoCodes(false);
+//     }
+//   }
+
+//   async function copyAccessValue(
+//     value: string,
+//     kind: "code" | "link",
+//   ) {
+//     try {
+//       await navigator.clipboard.writeText(value);
+//       setCopiedAccessValue(kind);
+
+//       window.setTimeout(() => {
+//         setCopiedAccessValue((current) =>
+//           current === kind ? "" : current,
+//         );
+//       }, 1600);
+//     } catch (error) {
+//       console.error("Failed to copy Gojo access value:", error);
+
+//       setNotice({
+//         type: "error",
+//         text: "መረጃውን መቅዳት አልተቻለም።",
+//       });
+//     }
+//   }
 
 //   function beep() {
 //     try {
@@ -304,6 +421,12 @@
 //   }
 
 //   useEffect(() => {
+//     setAccessBaseUrl(window.location.origin);
+//     loadGojoAccessCodes();
+//     // eslint-disable-next-line react-hooks/exhaustive-deps
+//   }, []);
+
+//   useEffect(() => {
 //     mountedRef.current = true;
 //     let timer: ReturnType<typeof setTimeout> | null = null;
 //     let stopped = false;
@@ -432,6 +555,27 @@
 //     }
 //   }
 
+//   const selectedAccessGojo = useMemo(() => {
+//     return (
+//       gojoAccessCodes.find(
+//         (gojo) => gojo.id === selectedAccessGojoId,
+//       ) || null
+//     );
+//   }, [gojoAccessCodes, selectedAccessGojoId]);
+
+//   const selectedAccessUrl = useMemo(() => {
+//     if (!selectedAccessGojo || !accessBaseUrl) {
+//       return "";
+//     }
+
+//     const params = new URLSearchParams({
+//       gojo: selectedAccessGojo.id,
+//       code: selectedAccessGojo.code,
+//     });
+
+//     return `${accessBaseUrl}/access?${params.toString()}`;
+//   }, [accessBaseUrl, selectedAccessGojo]);
+
 //   const pendingCount = orders.filter((order) => order.status === "NEW").length;
 //   const activeCount = orders.filter((order) =>
 //     ["NEW", "RECEIVED", "PREPARING"].includes(order.status)
@@ -466,10 +610,7 @@
 
 //   return (
 //     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(215,169,52,0.14),transparent_34%),linear-gradient(135deg,#f5f7ef,#e8f5ec_45%,#f7f3df)] pb-10">
-//       {/* <TopNav
-//   title="የሰራተኞች ገጽ"
-//   role="staff"
-// /> */}
+//       {/* <TopNav title="የሰራተኞች ገጽ" /> */}
 
 //       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 //         <div className="mb-6 overflow-hidden rounded-[2rem] bg-[#052e1a] shadow-2xl sm:rounded-[2.75rem]">
@@ -773,6 +914,164 @@
 //               <div className="flex items-start justify-between gap-4">
 //                 <div>
 //                   <p className="text-xs font-black uppercase tracking-[.2em] text-[#087443]">
+//                     የደንበኛ መግቢያ
+//                   </p>
+
+//                   <h2 className="mt-2 flex items-center gap-2 text-xl font-black text-[#052e1a]">
+//                     <KeyRound size={22} />
+//                     የጎጆ የይለፍ ቃል እና QR
+//                   </h2>
+//                 </div>
+
+//                 <button
+//                   type="button"
+//                   onClick={() => loadGojoAccessCodes(true)}
+//                   disabled={loadingGojoCodes}
+//                   className="rounded-2xl bg-[#064e2b]/8 p-3 text-[#064e2b] transition hover:bg-[#064e2b]/15 disabled:cursor-not-allowed disabled:opacity-60"
+//                   title="የቀኑን የይለፍ ቃል አድስ"
+//                   aria-label="የቀኑን የይለፍ ቃል አድስ"
+//                 >
+//                   <RotateCw
+//                     size={22}
+//                     className={loadingGojoCodes ? "animate-spin" : ""}
+//                   />
+//                 </button>
+//               </div>
+
+//               <select
+//                 value={selectedAccessGojoId}
+//                 onChange={(event) =>
+//                   setSelectedAccessGojoId(event.target.value)
+//                 }
+//                 disabled={loadingGojoCodes || gojoAccessCodes.length === 0}
+//                 className="mt-5 w-full rounded-2xl border border-[#064e2b]/15 bg-white px-4 py-3 font-bold text-[#052e1a] outline-none focus:border-[#087443] focus:ring-4 focus:ring-green-900/10 disabled:cursor-not-allowed disabled:opacity-60"
+//               >
+//                 <option value="">ጎጆ ይምረጡ</option>
+
+//                 {gojoAccessCodes.map((gojo) => (
+//                   <option key={gojo.id} value={gojo.id}>
+//                     {gojo.name?.trim() || `ጎጆ ${gojo.number}`}
+//                   </option>
+//                 ))}
+//               </select>
+
+//               {loadingGojoCodes && !selectedAccessGojo ? (
+//                 <div className="mt-4 flex items-center justify-center rounded-[1.5rem] bg-white p-8">
+//                   <Loader2
+//                     size={26}
+//                     className="animate-spin text-[#087443]"
+//                   />
+//                 </div>
+//               ) : selectedAccessGojo ? (
+//                 <div className="mt-4 overflow-hidden rounded-[1.75rem] border border-[#064e2b]/10 bg-white">
+//                   <div className="bg-[#052e1a] p-5 text-center text-white">
+//                     <p className="text-xs font-black uppercase tracking-[.18em] text-[#f5d36a]">
+//                       {selectedAccessGojo.name?.trim() ||
+//                         `ጎጆ ${selectedAccessGojo.number}`}
+//                     </p>
+
+//                     <p className="mt-2 font-mono text-4xl font-black tracking-[.22em] text-white">
+//                       {selectedAccessGojo.code}
+//                     </p>
+
+//                     {gojoCodesBusinessDate && (
+//                       <p className="mt-2 text-xs font-semibold text-white/55">
+//                         {new Date(gojoCodesBusinessDate).toLocaleDateString(
+//                           "en-ET",
+//                           {
+//                             year: "numeric",
+//                             month: "short",
+//                             day: "numeric",
+//                           },
+//                         )}
+//                       </p>
+//                     )}
+//                   </div>
+
+//                   <div className="flex flex-col items-center p-5">
+//                     {selectedAccessUrl ? (
+//                       <div className="rounded-2xl border border-[#064e2b]/10 bg-white p-3 shadow-sm">
+//                         <QRCodeSVG
+//                           value={selectedAccessUrl}
+//                           size={190}
+//                           level="M"
+//                           includeMargin
+//                           title={`Access QR for ${
+//                             selectedAccessGojo.name?.trim() ||
+//                             `Gojo ${selectedAccessGojo.number}`
+//                           }`}
+//                         />
+//                       </div>
+//                     ) : (
+//                       <div className="grid h-[214px] w-[214px] place-items-center rounded-2xl bg-[#f7fbf2] text-[#064e2b]/40">
+//                         <QrCode size={52} />
+//                       </div>
+//                     )}
+
+//                     <p className="mt-4 text-center text-sm font-semibold leading-6 text-[#064e2b]/65">
+//                       ደንበኛው QR ኮዱን ሲስካን የተመረጠው ጎጆና
+//                       የቀኑ የይለፍ ቃል በራሳቸው ይሞላሉ።
+//                     </p>
+
+//                     <div className="mt-4 grid w-full grid-cols-2 gap-2">
+//                       <button
+//                         type="button"
+//                         onClick={() =>
+//                           copyAccessValue(
+//                             selectedAccessGojo.code,
+//                             "code",
+//                           )
+//                         }
+//                         className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#ecfff4] px-3 py-3 text-sm font-black text-[#087443] transition hover:bg-emerald-100"
+//                       >
+//                         {copiedAccessValue === "code" ? (
+//                           <CheckCircle2 size={17} />
+//                         ) : (
+//                           <Copy size={17} />
+//                         )}
+//                         {copiedAccessValue === "code"
+//                           ? "ተቀድቷል"
+//                           : "ኮድ ቅዳ"}
+//                       </button>
+
+//                       <button
+//                         type="button"
+//                         onClick={() =>
+//                           selectedAccessUrl &&
+//                           copyAccessValue(selectedAccessUrl, "link")
+//                         }
+//                         disabled={!selectedAccessUrl}
+//                         className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#052e1a] px-3 py-3 text-sm font-black text-white transition hover:bg-[#064e2b] disabled:cursor-not-allowed disabled:opacity-60"
+//                       >
+//                         {copiedAccessValue === "link" ? (
+//                           <CheckCircle2 size={17} />
+//                         ) : (
+//                           <QrCode size={17} />
+//                         )}
+//                         {copiedAccessValue === "link"
+//                           ? "ተቀድቷል"
+//                           : "ሊንክ ቅዳ"}
+//                       </button>
+//                     </div>
+//                   </div>
+//                 </div>
+//               ) : (
+//                 <div className="mt-4 rounded-[1.5rem] border border-dashed border-[#064e2b]/20 bg-white p-6 text-center">
+//                   <QrCode
+//                     size={36}
+//                     className="mx-auto text-[#064e2b]/35"
+//                   />
+//                   <p className="mt-3 text-sm font-bold text-[#064e2b]/60">
+//                     የይለፍ ቃል እና QR ለማየት ጎጆ ይምረጡ።
+//                   </p>
+//                 </div>
+//               )}
+//             </div>
+
+//             <div className="soft-card rounded-[2rem] p-5">
+//               <div className="flex items-start justify-between gap-4">
+//                 <div>
+//                   <p className="text-xs font-black uppercase tracking-[.2em] text-[#087443]">
 //                     የጎጆ ክፍያ
 //                   </p>
 //                   <h2 className="mt-2 flex items-center gap-2 text-xl font-black text-[#052e1a]">
@@ -811,11 +1110,14 @@
 //                   <input
 //                     type="number"
 //                     min={0}
+//                     step={1}
+//                     inputMode="numeric"
 //                     placeholder="ሰዎች"
 //                     value={peopleCount}
-//                     onChange={(event) =>
-//                       setPeopleCount(Number(event.target.value))
-//                     }
+//                     onChange={(event) => {
+//                       gojoInputsDirtyRef.current = true;
+//                       setPeopleCount(event.target.value);
+//                     }}
 //                     className="w-full rounded-2xl border border-[#064e2b]/15 bg-white px-4 py-3 font-bold text-[#052e1a] outline-none focus:border-[#087443] focus:ring-4 focus:ring-green-900/10"
 //                   />
 //                 </label>
@@ -827,6 +1129,8 @@
 //                   <input
 //                     type="number"
 //                     min={0}
+//                     step="0.01"
+//                     inputMode="decimal"
 //                     placeholder="የመቀመጫ ዋጋ"
 //                     value={seatPrice}
 //                     onChange={(event) => {
@@ -948,19 +1252,29 @@
 
 
 
+
+
+
+
+
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { TopNav } from "@/components/TopNav";
+import { fetchJson } from "@/lib/client-api";
+import { QRCodeSVG } from "qrcode.react";
 import {
   AlertCircle,
   BellRing,
   CheckCircle2,
   CircleDollarSign,
+  Copy,
   Clock3,
   Coffee,
   Home,
+  KeyRound,
   Loader2,
+  QrCode,
   ReceiptText,
   RotateCw,
   Save,
@@ -995,6 +1309,25 @@ type Summary = {
 type Notice = {
   type: "success" | "error" | "info";
   text: string;
+};
+
+type ConnectionState =
+  | "online"
+  | "slow"
+  | "offline"
+  | "retrying";
+
+type GojoAccessCode = {
+  id: string;
+  number: number | string;
+  name?: string | null;
+  code: string;
+};
+
+type GojoAccessCodesResponse = {
+  businessDate?: string;
+  codes?: GojoAccessCode[];
+  error?: string;
 };
 
 const STATUS_FLOW = ["RECEIVED", "PREPARING", "DELIVERED", "CANCELLED"];
@@ -1035,32 +1368,6 @@ const statusConfig: Record<
   },
 };
 
-async function readJsonSafe(url: string, signal?: AbortSignal) {
-  const res = await fetch(url, {
-    cache: "no-store",
-    signal,
-    headers: {
-      Accept: "application/json",
-    },
-  });
-
-  const text = await res.text();
-
-  if (!res.ok) {
-    throw new Error(text || `${url} failed with status ${res.status}`);
-  }
-
-  if (!text.trim()) {
-    return {};
-  }
-
-  try {
-    return JSON.parse(text);
-  } catch {
-    throw new Error(`${url} returned invalid JSON.`);
-  }
-}
-
 function formatMoney(value: any) {
   return `${Number(value || 0).toFixed(0)} ብር`;
 }
@@ -1095,12 +1402,103 @@ export default function StaffPage() {
   const [savingGojo, setSavingGojo] = useState(false);
   const [updatingOrderId, setUpdatingOrderId] = useState("");
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [connectionState, setConnectionState] =
+    useState<ConnectionState>("online");
+  const [lastUpdatedAt, setLastUpdatedAt] =
+    useState<Date | null>(null);
+
+  const [gojoAccessCodes, setGojoAccessCodes] = useState<GojoAccessCode[]>([]);
+  const [selectedAccessGojoId, setSelectedAccessGojoId] = useState("");
+  const [gojoCodesBusinessDate, setGojoCodesBusinessDate] = useState("");
+  const [loadingGojoCodes, setLoadingGojoCodes] = useState(false);
+  const [copiedAccessValue, setCopiedAccessValue] = useState<
+    "code" | "link" | ""
+  >("");
+  const [accessBaseUrl, setAccessBaseUrl] = useState("");
 
   const lastOrderId = useRef<string | null>(null);
   const loadingRef = useRef(false);
   const mountedRef = useRef(false);
   const requestControllerRef = useRef<AbortController | null>(null);
   const gojoInputsDirtyRef = useRef(false);
+  const consecutiveFailuresRef = useRef(0);
+
+  async function loadGojoAccessCodes(showNotice = false) {
+    if (loadingGojoCodes) return;
+
+    try {
+      setLoadingGojoCodes(true);
+
+      const data =
+        await fetchJson<GojoAccessCodesResponse>(
+          "/api/staff/gojo-access-codes",
+          { timeoutMs: 15000 },
+        );
+
+      const codes = Array.isArray(data.codes)
+        ? data.codes
+        : [];
+
+      setGojoAccessCodes(codes);
+      setGojoCodesBusinessDate(
+        data.businessDate || "",
+      );
+
+      setSelectedAccessGojoId((current) => {
+        if (
+          current &&
+          codes.some(
+            (item) => item.id === current,
+          )
+        ) {
+          return current;
+        }
+
+        return codes[0]?.id || "";
+      });
+
+      if (showNotice) {
+        setNotice({
+          type: "success",
+          text: "የቀኑ የጎጆ የይለፍ ቃል ታድሷል።",
+        });
+      }
+    } catch (error: any) {
+      if (showNotice) {
+        setNotice({
+          type: "info",
+          text:
+            error?.message ||
+            "የጎጆ የይለፍ ቃሎቹን መጫን አልተቻለም። ያለው መረጃ እንዳለ ተጠብቋል።",
+        });
+      }
+    } finally {
+      setLoadingGojoCodes(false);
+    }
+  }
+
+  async function copyAccessValue(
+    value: string,
+    kind: "code" | "link",
+  ) {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedAccessValue(kind);
+
+      window.setTimeout(() => {
+        setCopiedAccessValue((current) =>
+          current === kind ? "" : current,
+        );
+      }, 1600);
+    } catch (error) {
+      console.error("Failed to copy Gojo access value:", error);
+
+      setNotice({
+        type: "error",
+        text: "መረጃውን መቅዳት አልተቻለም።",
+      });
+    }
+  }
 
   function beep() {
     try {
@@ -1135,22 +1533,38 @@ export default function StaffPage() {
     requestControllerRef.current = controller;
 
     try {
-      if (manual && mountedRef.current) setRefreshing(true);
+      if (manual && mountedRef.current) {
+        setRefreshing(true);
+        setConnectionState("retrying");
+      }
 
-      const [ordersResult, summaryResult] = await Promise.allSettled([
-        readJsonSafe("/api/orders", controller.signal),
-        readJsonSafe("/api/summary", controller.signal),
-      ]);
+      const [ordersResult, summaryResult] =
+        await Promise.allSettled([
+          fetchJson<any>("/api/orders", {
+            signal: controller.signal,
+            timeoutMs: 15000,
+          }),
+          fetchJson<any>("/api/summary", {
+            signal: controller.signal,
+            timeoutMs: 15000,
+          }),
+        ]);
 
-      if (!mountedRef.current || controller.signal.aborted) return false;
+      if (
+        !mountedRef.current ||
+        controller.signal.aborted
+      ) {
+        return false;
+      }
 
       let receivedData = false;
       const errors: string[] = [];
 
       if (ordersResult.status === "fulfilled") {
-        const ordersData = ordersResult.value;
-        const newOrders: Order[] = Array.isArray(ordersData.orders)
-          ? ordersData.orders
+        const newOrders: Order[] = Array.isArray(
+          ordersResult.value.orders,
+        )
+          ? ordersResult.value.orders
           : [];
 
         if (
@@ -1158,25 +1572,41 @@ export default function StaffPage() {
           soundOn &&
           lastOrderId.current &&
           newOrders[0]?.id &&
-          newOrders[0].id !== lastOrderId.current
+          newOrders[0].id !==
+            lastOrderId.current
         ) {
           beep();
         }
 
-        lastOrderId.current = newOrders[0]?.id || lastOrderId.current;
+        lastOrderId.current =
+          newOrders[0]?.id ||
+          lastOrderId.current;
+
         setOrders(newOrders);
         receivedData = true;
-      } else if (ordersResult.reason?.name !== "AbortError") {
+      } else if (
+        ordersResult.reason?.name !==
+        "AbortError"
+      ) {
         errors.push(
-          ordersResult.reason?.message || "ትዕዛዞችን መጫን አልተቻለም።"
+          ordersResult.reason?.message ||
+            "ትዕዛዞችን መጫን አልተቻለም።",
         );
       }
 
       if (summaryResult.status === "fulfilled") {
-        const summaryData = summaryResult.value;
+        const summaryData =
+          summaryResult.value;
+
         const nextSummary = {
-          byGojo: Array.isArray(summaryData.byGojo) ? summaryData.byGojo : [],
-          productTotals: Array.isArray(summaryData.productTotals)
+          byGojo: Array.isArray(
+            summaryData.byGojo,
+          )
+            ? summaryData.byGojo
+            : [],
+          productTotals: Array.isArray(
+            summaryData.productTotals,
+          )
             ? summaryData.productTotals
             : [],
           totals: summaryData.totals || {},
@@ -1184,59 +1614,133 @@ export default function StaffPage() {
 
         setSummary(nextSummary);
 
-        if (!selectedGojoId && nextSummary.byGojo?.[0]?.gojo?.id) {
-          const firstGojo = nextSummary.byGojo[0];
-          setSelectedGojoId(firstGojo.gojo.id);
+        if (
+          !selectedGojoId &&
+          nextSummary.byGojo?.[0]?.gojo?.id
+        ) {
+          const firstGojo =
+            nextSummary.byGojo[0];
 
-          if (!gojoInputsDirtyRef.current) {
-            setPeopleCount(String(firstGojo.peopleCount ?? ""));
-            setSeatPrice(String(firstGojo.seatPrice ?? ""));
+          setSelectedGojoId(
+            firstGojo.gojo.id,
+          );
+
+          if (
+            !gojoInputsDirtyRef.current
+          ) {
+            setPeopleCount(
+              String(
+                firstGojo.peopleCount ?? "",
+              ),
+            );
+            setSeatPrice(
+              String(
+                firstGojo.seatPrice ?? "",
+              ),
+            );
           }
         }
 
         receivedData = true;
-      } else if (summaryResult.reason?.name !== "AbortError") {
+      } else if (
+        summaryResult.reason?.name !==
+        "AbortError"
+      ) {
         errors.push(
-          summaryResult.reason?.message || "ማጠቃለያውን መጫን አልተቻለም።"
+          summaryResult.reason?.message ||
+            "ማጠቃለያውን መጫን አልተቻለም።",
         );
       }
 
-      if (errors.length > 0 && !receivedData) {
-        throw new Error(errors.join(" "));
+      if (receivedData) {
+        consecutiveFailuresRef.current = 0;
+        setConnectionState("online");
+        setLastUpdatedAt(new Date());
+
+        if (manual && errors.length === 0) {
+          setNotice({
+            type: "success",
+            text: "መረጃው ታድሷል።",
+          });
+        } else if (manual && errors.length > 0) {
+          setNotice({
+            type: "info",
+            text: "አንዳንድ መረጃዎች አልታደሱም። ያለው መረጃ እንዳለ ተጠብቋል።",
+          });
+        } else {
+          setNotice((current) =>
+            current?.type === "info"
+              ? null
+              : current,
+          );
+        }
+
+        return true;
       }
 
-      // A temporary failure in one endpoint should not erase good data from
-      // the other endpoint or flood the staff screen with repeating errors.
-      if (errors.length > 0 && manual) {
-        setNotice({
-          type: "info",
-          text: "አንዳንድ መረጃዎች አልታደሱም። ያለው መረጃ እንዳለ ተጠብቋል።",
-        });
-      } else if (manual) {
-        setNotice({
-          type: "success",
-          text: "መረጃው ታድሷል።",
-        });
+      consecutiveFailuresRef.current += 1;
+
+      const online =
+        typeof navigator === "undefined" ||
+        navigator.onLine;
+
+      setConnectionState(
+        online ? "slow" : "offline",
+      );
+
+      setNotice({
+        type: "info",
+        text: online
+          ? "ግንኙነቱ ዘግይቷል። የመጨረሻው መረጃ እየታየ ነው፣ ሲስተሙም በራሱ እንደገና ይሞክራል።"
+          : "የኢንተርኔት ግንኙነት የለም። የመጨረሻው መረጃ እየታየ ነው።",
+      });
+
+      if (manual && errors.length > 0) {
+        console.warn(
+          "Manual staff refresh failed:",
+          errors,
+        );
       }
 
-      return receivedData;
-    } catch (err: any) {
-      if (err?.name === "AbortError" || !mountedRef.current) return false;
+      return false;
+    } catch (error: any) {
+      if (
+        error?.name === "AbortError" ||
+        !mountedRef.current
+      ) {
+        return false;
+      }
 
-      console.error("Failed to load staff data:", err);
+      consecutiveFailuresRef.current += 1;
 
-      // Only show automatic polling errors on the first load. A momentary
-      // network/database slowdown should keep the existing screen usable.
-      if (manual || loading) {
-        setNotice({
-          type: "error",
-          text: err?.message || "የሰራተኞችን መረጃ መጫን አልተቻለም።",
-        });
+      const online =
+        typeof navigator === "undefined" ||
+        navigator.onLine;
+
+      setConnectionState(
+        online ? "slow" : "offline",
+      );
+
+      setNotice({
+        type: "info",
+        text: online
+          ? "ግንኙነቱ ዘግይቷል። የመጨረሻው መረጃ እየታየ ነው።"
+          : "የኢንተርኔት ግንኙነት የለም። የመጨረሻው መረጃ እየታየ ነው።",
+      });
+
+      if (manual) {
+        console.warn(
+          "Manual staff refresh failed:",
+          error,
+        );
       }
 
       return false;
     } finally {
-      if (requestControllerRef.current === controller) {
+      if (
+        requestControllerRef.current ===
+        controller
+      ) {
         requestControllerRef.current = null;
       }
 
@@ -1250,21 +1754,92 @@ export default function StaffPage() {
   }
 
   useEffect(() => {
+    setAccessBaseUrl(window.location.origin);
+    loadGojoAccessCodes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     mountedRef.current = true;
-    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    let timer:
+      | ReturnType<typeof setTimeout>
+      | null = null;
+
     let stopped = false;
 
-    async function poll() {
-      await load(true);
+    function nextDelay() {
+      const failures =
+        consecutiveFailuresRef.current;
 
-      if (!stopped && mountedRef.current) {
-        timer = setTimeout(poll, 4000);
+      if (failures === 0) return 8000;
+      if (failures === 1) return 15000;
+      if (failures === 2) return 30000;
+      return 60000;
+    }
+
+    async function poll() {
+      const success = await load(true);
+
+      if (
+        !success &&
+        mountedRef.current &&
+        !stopped
+      ) {
+        setConnectionState(
+          navigator.onLine
+            ? "retrying"
+            : "offline",
+        );
+      }
+
+      if (
+        !stopped &&
+        mountedRef.current
+      ) {
+        timer = setTimeout(
+          poll,
+          nextDelay(),
+        );
       }
     }
 
+    async function handleOnline() {
+      consecutiveFailuresRef.current = 0;
+      setConnectionState("retrying");
+
+      if (timer) clearTimeout(timer);
+
+      loadingRef.current = false;
+      await poll();
+    }
+
+    function handleOffline() {
+      setConnectionState("offline");
+      setNotice({
+        type: "info",
+        text: "የኢንተርኔት ግንኙነት ተቋርጧል። የመጨረሻው መረጃ እየታየ ነው።",
+      });
+    }
+
+    window.addEventListener(
+      "online",
+      handleOnline,
+    );
+    window.addEventListener(
+      "offline",
+      handleOffline,
+    );
+
     load(false).finally(() => {
-      if (!stopped && mountedRef.current) {
-        timer = setTimeout(poll, 4000);
+      if (
+        !stopped &&
+        mountedRef.current
+      ) {
+        timer = setTimeout(
+          poll,
+          nextDelay(),
+        );
       }
     });
 
@@ -1273,9 +1848,19 @@ export default function StaffPage() {
       mountedRef.current = false;
 
       if (timer) clearTimeout(timer);
+
       requestControllerRef.current?.abort();
       requestControllerRef.current = null;
       loadingRef.current = false;
+
+      window.removeEventListener(
+        "online",
+        handleOnline,
+      );
+      window.removeEventListener(
+        "offline",
+        handleOffline,
+      );
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [soundOn]);
@@ -1291,37 +1876,37 @@ export default function StaffPage() {
     }
   }, [selectedGojoId, summary]);
 
-  async function setStatus(id: string, status: string) {
+  async function setStatus(
+    id: string,
+    status: string,
+  ) {
     try {
       setUpdatingOrderId(`${id}-${status}`);
       setNotice(null);
 
-      const res = await fetch(`/api/orders/${id}`, {
+      await fetchJson(`/api/orders/${id}`, {
         method: "PATCH",
+        timeoutMs: 15000,
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ status }),
       });
 
-      const text = await res.text();
-
-      if (!res.ok) {
-        throw new Error(text || "ትዕዛዙን ማዘመን አልተቻለም።");
-      }
-
       setNotice({
         type: "success",
-        text: `ትዕዛዙ ${getStatusConfig(status).label} ተብሎ ተዘምኗል።`,
+        text: `ትዕዛዙ ${
+          getStatusConfig(status).label
+        } ተብሎ ተዘምኗል።`,
       });
 
       await load(false);
-    } catch (err: any) {
-      console.error("Failed to update order:", err);
-
+    } catch (error: any) {
       setNotice({
         type: "error",
-        text: err?.message || "ትዕዛዙን ማዘመን አልተቻለም።",
+        text:
+          error?.message ||
+          "ትዕዛዙን ማዘመን አልተቻለም።",
       });
     } finally {
       setUpdatingOrderId("");
@@ -1341,23 +1926,24 @@ export default function StaffPage() {
       setSavingGojo(true);
       setNotice(null);
 
-      const res = await fetch("/api/day-gojos", {
+      await fetchJson("/api/day-gojos", {
         method: "POST",
+        timeoutMs: 15000,
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           gojoId: selectedGojoId,
-          peopleCount: Math.max(Number(peopleCount || 0), 0),
-          seatPrice: Math.max(Number(seatPrice || 0), 0),
+          peopleCount: Math.max(
+            Number(peopleCount || 0),
+            0,
+          ),
+          seatPrice: Math.max(
+            Number(seatPrice || 0),
+            0,
+          ),
         }),
       });
-
-      const text = await res.text();
-
-      if (!res.ok) {
-        throw new Error(text || "የጎጆውን ክፍያ ማስቀመጥ አልተቻለም።");
-      }
 
       setNotice({
         type: "success",
@@ -1366,17 +1952,38 @@ export default function StaffPage() {
 
       gojoInputsDirtyRef.current = false;
       await load(false);
-    } catch (err: any) {
-      console.error("Failed to save gojo billing:", err);
-
+    } catch (error: any) {
       setNotice({
         type: "error",
-        text: err?.message || "የጎጆውን ክፍያ ማስቀመጥ አልተቻለም።",
+        text:
+          error?.message ||
+          "የጎጆውን ክፍያ ማስቀመጥ አልተቻለም።",
       });
     } finally {
       setSavingGojo(false);
     }
   }
+
+  const selectedAccessGojo = useMemo(() => {
+    return (
+      gojoAccessCodes.find(
+        (gojo) => gojo.id === selectedAccessGojoId,
+      ) || null
+    );
+  }, [gojoAccessCodes, selectedAccessGojoId]);
+
+  const selectedAccessUrl = useMemo(() => {
+    if (!selectedAccessGojo || !accessBaseUrl) {
+      return "";
+    }
+
+    const params = new URLSearchParams({
+      gojo: selectedAccessGojo.id,
+      code: selectedAccessGojo.code,
+    });
+
+    return `${accessBaseUrl}/access?${params.toString()}`;
+  }, [accessBaseUrl, selectedAccessGojo]);
 
   const pendingCount = orders.filter((order) => order.status === "NEW").length;
   const activeCount = orders.filter((order) =>
@@ -1458,6 +2065,61 @@ export default function StaffPage() {
           </div>
         </div>
 
+        {connectionState !== "online" && (
+          <div className="mb-5 flex flex-col gap-4 rounded-[1.5rem] border border-amber-200 bg-amber-50 px-5 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <AlertCircle
+                size={21}
+                className="mt-0.5 shrink-0 text-amber-700"
+              />
+
+              <div>
+                <p className="font-black text-amber-900">
+                  {connectionState === "offline"
+                    ? "የኢንተርኔት ግንኙነት የለም"
+                    : connectionState === "retrying"
+                      ? "እንደገና በመገናኘት ላይ"
+                      : "ግንኙነቱ ዘግይቷል"}
+                </p>
+
+                <p className="mt-1 text-sm font-semibold text-amber-800/75">
+                  {orders.length > 0 || summary
+                    ? "የመጨረሻው የተሳካ መረጃ እየታየ ነው። ሲስተሙ በራሱ እንደገና ይሞክራል።"
+                    : "መረጃውን ለመጫን እንደገና ይሞክሩ።"}
+                </p>
+
+                {lastUpdatedAt && (
+                  <p className="mt-1 text-xs font-bold text-amber-800/55">
+                    መጨረሻ የታደሰው፡{" "}
+                    {lastUpdatedAt.toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                consecutiveFailuresRef.current = 0;
+                loadingRef.current = false;
+                setConnectionState("retrying");
+                void load(false, true);
+              }}
+              disabled={refreshing}
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-amber-900 px-4 py-2.5 text-sm font-black text-white transition hover:bg-amber-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <RotateCw
+                size={17}
+                className={refreshing ? "animate-spin" : ""}
+              />
+              እንደገና ሞክር
+            </button>
+          </div>
+        )}
+
         {notice && (
           <div
             className={`mb-5 flex items-start gap-3 rounded-[1.5rem] border px-5 py-4 text-sm font-bold shadow-sm ${
@@ -1490,7 +2152,7 @@ export default function StaffPage() {
                 </h2>
 
                 <p className="mt-1 text-sm font-semibold text-[#064e2b]/60">
-                  በየ4 ሰከንዱ በራሱ ይታደሳል።
+                  በራሱ ይታደሳል፤ ግንኙነቱ ሲዘገይ የመጨረሻው መረጃ እንዳለ ይቆያል።
                 </p>
               </div>
 
@@ -1712,6 +2374,164 @@ export default function StaffPage() {
                       </div>
 
           <aside className="space-y-5">
+            <div className="soft-card rounded-[2rem] p-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[.2em] text-[#087443]">
+                    የደንበኛ መግቢያ
+                  </p>
+
+                  <h2 className="mt-2 flex items-center gap-2 text-xl font-black text-[#052e1a]">
+                    <KeyRound size={22} />
+                    የጎጆ የይለፍ ቃል እና QR
+                  </h2>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => loadGojoAccessCodes(true)}
+                  disabled={loadingGojoCodes}
+                  className="rounded-2xl bg-[#064e2b]/8 p-3 text-[#064e2b] transition hover:bg-[#064e2b]/15 disabled:cursor-not-allowed disabled:opacity-60"
+                  title="የቀኑን የይለፍ ቃል አድስ"
+                  aria-label="የቀኑን የይለፍ ቃል አድስ"
+                >
+                  <RotateCw
+                    size={22}
+                    className={loadingGojoCodes ? "animate-spin" : ""}
+                  />
+                </button>
+              </div>
+
+              <select
+                value={selectedAccessGojoId}
+                onChange={(event) =>
+                  setSelectedAccessGojoId(event.target.value)
+                }
+                disabled={loadingGojoCodes || gojoAccessCodes.length === 0}
+                className="mt-5 w-full rounded-2xl border border-[#064e2b]/15 bg-white px-4 py-3 font-bold text-[#052e1a] outline-none focus:border-[#087443] focus:ring-4 focus:ring-green-900/10 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <option value="">ጎጆ ይምረጡ</option>
+
+                {gojoAccessCodes.map((gojo) => (
+                  <option key={gojo.id} value={gojo.id}>
+                    {gojo.name?.trim() || `ጎጆ ${gojo.number}`}
+                  </option>
+                ))}
+              </select>
+
+              {loadingGojoCodes && !selectedAccessGojo ? (
+                <div className="mt-4 flex items-center justify-center rounded-[1.5rem] bg-white p-8">
+                  <Loader2
+                    size={26}
+                    className="animate-spin text-[#087443]"
+                  />
+                </div>
+              ) : selectedAccessGojo ? (
+                <div className="mt-4 overflow-hidden rounded-[1.75rem] border border-[#064e2b]/10 bg-white">
+                  <div className="bg-[#052e1a] p-5 text-center text-white">
+                    <p className="text-xs font-black uppercase tracking-[.18em] text-[#f5d36a]">
+                      {selectedAccessGojo.name?.trim() ||
+                        `ጎጆ ${selectedAccessGojo.number}`}
+                    </p>
+
+                    <p className="mt-2 font-mono text-4xl font-black tracking-[.22em] text-white">
+                      {selectedAccessGojo.code}
+                    </p>
+
+                    {gojoCodesBusinessDate && (
+                      <p className="mt-2 text-xs font-semibold text-white/55">
+                        {new Date(gojoCodesBusinessDate).toLocaleDateString(
+                          "en-ET",
+                          {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          },
+                        )}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col items-center p-5">
+                    {selectedAccessUrl ? (
+                      <div className="rounded-2xl border border-[#064e2b]/10 bg-white p-3 shadow-sm">
+                        <QRCodeSVG
+                          value={selectedAccessUrl}
+                          size={190}
+                          level="M"
+                          includeMargin
+                          title={`Access QR for ${
+                            selectedAccessGojo.name?.trim() ||
+                            `Gojo ${selectedAccessGojo.number}`
+                          }`}
+                        />
+                      </div>
+                    ) : (
+                      <div className="grid h-[214px] w-[214px] place-items-center rounded-2xl bg-[#f7fbf2] text-[#064e2b]/40">
+                        <QrCode size={52} />
+                      </div>
+                    )}
+
+                    <p className="mt-4 text-center text-sm font-semibold leading-6 text-[#064e2b]/65">
+                      ደንበኛው QR ኮዱን ሲስካን የተመረጠው ጎጆና
+                      የቀኑ የይለፍ ቃል በራሳቸው ይሞላሉ።
+                    </p>
+
+                    <div className="mt-4 grid w-full grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          copyAccessValue(
+                            selectedAccessGojo.code,
+                            "code",
+                          )
+                        }
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#ecfff4] px-3 py-3 text-sm font-black text-[#087443] transition hover:bg-emerald-100"
+                      >
+                        {copiedAccessValue === "code" ? (
+                          <CheckCircle2 size={17} />
+                        ) : (
+                          <Copy size={17} />
+                        )}
+                        {copiedAccessValue === "code"
+                          ? "ተቀድቷል"
+                          : "ኮድ ቅዳ"}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          selectedAccessUrl &&
+                          copyAccessValue(selectedAccessUrl, "link")
+                        }
+                        disabled={!selectedAccessUrl}
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#052e1a] px-3 py-3 text-sm font-black text-white transition hover:bg-[#064e2b] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {copiedAccessValue === "link" ? (
+                          <CheckCircle2 size={17} />
+                        ) : (
+                          <QrCode size={17} />
+                        )}
+                        {copiedAccessValue === "link"
+                          ? "ተቀድቷል"
+                          : "ሊንክ ቅዳ"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-4 rounded-[1.5rem] border border-dashed border-[#064e2b]/20 bg-white p-6 text-center">
+                  <QrCode
+                    size={36}
+                    className="mx-auto text-[#064e2b]/35"
+                  />
+                  <p className="mt-3 text-sm font-bold text-[#064e2b]/60">
+                    የይለፍ ቃል እና QR ለማየት ጎጆ ይምረጡ።
+                  </p>
+                </div>
+              )}
+            </div>
+
             <div className="soft-card rounded-[2rem] p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>

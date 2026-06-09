@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getOrCreateTodaySession } from "@/lib/day";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const NO_STORE_HEADERS = {
+  "Cache-Control": "no-store, max-age=0",
+};
 
 function isDatabaseUnavailable(
   error: unknown,
@@ -47,60 +50,47 @@ function isDatabaseUnavailable(
     ) ||
     message.includes(
       "Connection timed out",
-    )
+    ) ||
+    message.includes(
+      "prepared statement",
+    ) ||
+    message.includes("42P05")
   );
 }
 
 export async function GET() {
   try {
-    /*
-     * Preserve the current behavior:
-     * ensure today's business session exists.
-     */
-    // await getOrCreateTodaySession();
+    const gojos =
+      await prisma.gojo.findMany({
+        where: {
+          active: true,
+        },
 
-    const [gojos, products] =
-      await Promise.all([
-        prisma.gojo.findMany({
-          where: {
-            active: true,
-          },
-          orderBy: {
-            number: "asc",
-          },
-        }),
+        select: {
+          id: true,
+          number: true,
+          name: true,
+          active: true,
+        },
 
-        prisma.product.findMany({
-          where: {
-            active: true,
-          },
-          orderBy: [
-            {
-              sortOrder: "asc",
-            },
-            {
-              name: "asc",
-            },
-          ],
-        }),
-      ]);
+        orderBy: {
+          number: "asc",
+        },
+      });
 
     return NextResponse.json(
       {
         gojos,
-        products,
       },
       {
         status: 200,
-        headers: {
-          "Cache-Control":
-            "no-store, max-age=0",
-        },
+        headers:
+          NO_STORE_HEADERS,
       },
     );
   } catch (error: unknown) {
     console.error(
-      "Bootstrap API error:",
+      "Gojo API error:",
       error,
     );
 
@@ -111,14 +101,15 @@ export async function GET() {
         {
           error:
             "የመረጃ ቋቱ ግንኙነት ለጊዜው ዘግይቷል። እባክዎ ትንሽ ቆይተው እንደገና ይሞክሩ።",
+
           retryable: true,
         },
         {
           status: 503,
+
           headers: {
+            ...NO_STORE_HEADERS,
             "Retry-After": "15",
-            "Cache-Control":
-              "no-store, max-age=0",
           },
         },
       );
@@ -127,15 +118,14 @@ export async function GET() {
     return NextResponse.json(
       {
         error:
-          "የጎጆና የምርት መረጃውን መጫን አልተቻለም።",
+          "የጎጆ ዝርዝሩን መጫን አልተቻለም።",
+
         retryable: false,
       },
       {
         status: 500,
-        headers: {
-          "Cache-Control":
-            "no-store, max-age=0",
-        },
+        headers:
+          NO_STORE_HEADERS,
       },
     );
   }
