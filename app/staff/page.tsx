@@ -1412,7 +1412,7 @@ export default function StaffPage() {
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(215,169,52,0.14),transparent_34%),linear-gradient(135deg,#f5f7ef,#e8f5ec_45%,#f7f3df)] pb-10">
-      <TopNav title="የሰራተኞች ገጽ" />
+      {/* <TopNav title="የሰራተኞች ገጽ" /> */}
 
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-6 overflow-hidden rounded-[2rem] bg-[#052e1a] shadow-2xl sm:rounded-[2.75rem]">
